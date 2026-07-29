@@ -2,6 +2,9 @@
 node_modules/
 **/node_modules/
 
+# Reference & internal tools
+_core_reference/
+
 # Build outputs
 dist/
 **/dist/
