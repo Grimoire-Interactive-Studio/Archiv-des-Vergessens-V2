@@ -2,8 +2,14 @@
 node_modules/
 **/node_modules/
 
-# Reference & internal tools
+# Reference & internal tools / AI agent configs
 _core_reference/
+.agents/
+**/.agents/
+skills/
+**/skills/
+AGENTS_*.md
+**/AGENTS_*.md
 
 # Build outputs
 dist/
