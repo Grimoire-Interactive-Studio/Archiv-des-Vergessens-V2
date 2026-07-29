@@ -12,6 +12,9 @@
     "preview": "npm run preview --workspace=game_app",
     "test": "npm run test --workspace=game_app"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "*"
+  },
   "keywords": [
     "idle-game",
     "incremental-game",
