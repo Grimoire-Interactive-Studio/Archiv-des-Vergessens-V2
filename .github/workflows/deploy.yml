@@ -30,22 +30,16 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: game_app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd game_app
-          npm ci
+        run: npm ci
 
       - name: Run Tests
-        run: |
-          cd game_app
-          npm test
+        run: npm test
 
       - name: Build Web Application
-        run: |
-          cd game_app
-          npm run build
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
