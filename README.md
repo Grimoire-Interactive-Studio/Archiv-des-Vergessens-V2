@@ -46,12 +46,23 @@
 - **Node.js** (v18.0.0 oder höher empfohlen)
 - **npm** (v9.0.0 oder höher)
 
-### Installation & Start
+### Automatische Einrichtung (Setup Scripts)
 
-1. **Repository klonen**:
+Für eine schnelle und einfache Einrichtung stehen plattformspezifische Einrichtungs-Skripte zur Verfügung:
+
+- **Windows (PowerShell)**: `./setup.ps1`
+- **Windows (Batch / Doppelklick)**: `setup.bat`
+- **Linux / macOS (Bash)**: `./setup.sh`
+- **Cross-Platform (npm)**: `npm run setup`
+
+Diese Skripte überprüfen deine Node.js/npm-Umgebung, installieren alle Abhängigkeiten, führen die Test-Suite aus und bieten die Möglichkeit, den Dev-Server direkt zu starten.
+
+### Manuelle Installation & Start
+
+1. **Repository klonen & in das Hauptverzeichnis wechseln**:
    ```bash
    git clone https://github.com/Grimoire-Interactive-Studio/Archiv-des-Vergessens-V2.git
-   cd Archiv-des-Vergessens-V2/game_app
+   cd Archiv-des-Vergessens-V2
    ```
 
 2. **Abhängigkeiten installieren**:

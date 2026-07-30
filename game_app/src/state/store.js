@@ -141,7 +141,12 @@ export const INITIAL_STATE = {
   }
 };
 
+const isProduction =
+  (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production') ||
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.PROD);
+
 function deepFreeze(obj) {
+  if (isProduction) return obj;
   if (obj && typeof obj === 'object' && !Object.isFrozen(obj)) {
     Object.freeze(obj);
     Object.keys(obj).forEach((key) => {

@@ -1,22 +1,53 @@
-/* Modern Aesthetic Design System - Archiv des Vergessens */
+/* Modern Arcane Cosmic Design System - Archiv des Vergessens V2 */
 
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-card: rgba(22, 22, 34, 0.75);
-  --bg-card-hover: rgba(32, 32, 50, 0.85);
-  --accent-gold: #e2b042;
-  --accent-gold-glow: rgba(226, 176, 66, 0.3);
-  --accent-purple: #9d4edd;
-  --accent-purple-glow: rgba(157, 78, 221, 0.25);
-  --text-main: #f0f0f5;
-  --text-muted: #8e8ea0;
-  --border-subtle: rgba(226, 176, 66, 0.2);
-  --border-hover: rgba(226, 176, 66, 0.5);
+  /* Color Palette - Arcane Cosmic Theme (Mockup adjusted) */
+  --bg-primary: #10051e; /* Deep indigo/purple space */
+  --bg-secondary: #1a0b2e; /* Slightly lighter for cards */
+  --bg-card: rgba(26, 11, 46, 0.65); /* Translucent panel bg */
+  --bg-card-hover: rgba(36, 17, 61, 0.75);
+  --bg-glass: rgba(16, 5, 30, 0.55);
+  
+  /* Accents - Antique Arcane Gold & Mystical Violet */
+  --accent-gold: #cca762; /* Matte antique gold from mockup */
+  --accent-gold-bright: #fce8b2; /* Bright highlight */
+  --accent-gold-muted: #8c7343; /* Darker border gold */
+  --accent-gold-glow: rgba(204, 167, 98, 0.35);
+  --accent-gold-intense: rgba(252, 232, 178, 0.65);
+  
+  --accent-purple: #9f6cf3;
+  --accent-purple-deep: #5a329e;
+  --accent-purple-glow: rgba(159, 108, 243, 0.3);
+
+  /* Specific Stat/Icon Colors */
+  --color-dex: #4ad3cc; /* Cyan/Teal */
+  --color-con: #d84b9e; /* Pink/Magenta */
+  --color-str: #e69138; /* Orange/Copper */
+  
+  /* Text Hierarchy */
+  --text-main: #f0eadd; /* Cream off-white */
+  --text-bright: #ffffff;
+  --text-muted: #a395b3;
+  --text-gold: #fce8b2;
+  
+  /* Borders & Shadows */
+  --border-subtle: rgba(204, 167, 98, 0.3);
+  --border-hover: rgba(204, 167, 98, 0.6);
+  --border-purple: rgba(159, 108, 243, 0.35);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.55);
+  --shadow-gold-glow: 0 0 25px rgba(204, 167, 98, 0.25);
+  --shadow-purple-glow: 0 0 25px rgba(159, 108, 243, 0.25);
+  
+  /* Fonts */
   --font-serif: 'Cinzel', serif;
   --font-sans: 'Inter', sans-serif;
-  --radius-lg: 12px;
-  --radius-md: 8px;
-  --transition-fast: 0.2s ease;
+  
+  /* Geometry & Motion */
+  --radius-lg: 4px; /* Panels in mockup have sharp corners due to SVG ornaments */
+  --radius-md: 4px;
+  --radius-sm: 2px;
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -25,11 +56,29 @@
   padding: 0;
 }
 
+/* Custom Arcane Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(11, 0, 20, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold-muted);
+  box-shadow: 0 0 10px var(--accent-gold-glow);
+}
+
 body {
   background-color: var(--bg-primary);
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(157, 78, 221, 0.15), transparent 70%),
-    radial-gradient(circle at 100% 100%, rgba(226, 176, 66, 0.08), transparent 60%);
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -37,11 +86,12 @@ body {
   justify-content: center;
   align-items: center;
   padding: 2rem 1rem;
+  overflow-x: hidden;
 }
 
 #app {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1050px;
 }
 
 .game-container {

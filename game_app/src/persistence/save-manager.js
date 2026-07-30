@@ -1,5 +1,5 @@
 /**
- * SaveManager: Lokale Speicherung in LocalStorage mit IndexedDB-Fallback.
+ * SaveManager: Lokale Speicherung in LocalStorage.
  */
 
 const SAVE_KEY = 'archiv_des_vergessens_save_v1';

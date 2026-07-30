@@ -2,11 +2,13 @@
   "name": "archiv-des-vergessens-v2",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Archiv des Vergessens V2 - Inkremental- & Idle-Webspiel um Erinnerungen, magische Generatoren und kosmische Resonanz.",
   "workspaces": [
     "game_app"
   ],
   "scripts": {
+    "setup": "node scripts/setup.js",
     "dev": "npm run dev --workspace=game_app",
     "build": "npm run build --workspace=game_app",
     "preview": "npm run preview --workspace=game_app",
