@@ -8,8 +8,7 @@ export function AmbientParticles({ active = true }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Use desynchronized 2D context for GPU-accelerated low-latency rendering
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true });
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     let animationFrameId;
@@ -22,7 +21,6 @@ export function AmbientParticles({ active = true }) {
       canvas.height = height * dpr;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
-      ctx.scale(dpr, dpr);
     };
 
     resizeCanvas();
@@ -49,9 +47,12 @@ export function AmbientParticles({ active = true }) {
       const currentWidth = window.innerWidth;
       const currentHeight = window.innerHeight;
 
-      ctx.clearRect(0, 0, currentWidth, currentHeight);
+      // WICHTIG: Das gesamte Canvas-Buffer (canvas.width x canvas.height) löschen
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Lightweight batch drawing using fillStyle without heavy CPU shadowBlur
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.y -= p.speedY;
@@ -68,6 +69,8 @@ export function AmbientParticles({ active = true }) {
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      ctx.restore();
 
       animationFrameId = requestAnimationFrame(render);
     };

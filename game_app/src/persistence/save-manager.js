@@ -43,6 +43,14 @@ export class SaveManager {
       return false;
     }
   }
+
+  static hasSave() {
+    try {
+      return localStorage.getItem(SAVE_KEY) !== null;
+    } catch (err) {
+      return false;
+    }
+  }
 }
 
 export default SaveManager;

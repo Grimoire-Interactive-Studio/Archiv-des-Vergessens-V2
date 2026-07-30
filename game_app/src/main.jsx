@@ -4,12 +4,16 @@ import store from './state/store';
 import { processTick, addMneme } from './state/actions';
 import GameLoop from './engine/loop';
 import SaveManager from './persistence/save-manager';
-import { calculateOfflineProgress } from './engine/math';
+import {
+  calculateOfflineProgress,
+  calculateAggregatePlayerStats,
+  calculateTotalGeneratorYield
+} from './engine/math';
 import './style.css';
 
 // 1. Speichersituation prüfen und laden
 const savedState = SaveManager.load();
-let offlineMessage = '';
+let offlineData = null;
 
 if (savedState) {
   store.hydrate(savedState);
@@ -17,20 +21,22 @@ if (savedState) {
   const lastSave = state.system?.lastSave || 0;
 
   // Ertrag pro Sekunde für Offline-Progression ermitteln
-  let totalYieldPerSecond = 0;
-  for (const key in state.generators) {
-    const gen = state.generators[key];
-    if (gen.level > 0) {
-      const milestones = Math.pow(2, Math.floor(gen.level / 25));
-      totalYieldPerSecond += gen.baseYield * gen.level * milestones;
-    }
-  }
+  const stats = calculateAggregatePlayerStats(state.player);
+  const totalYieldPerSecond = calculateTotalGeneratorYield(state.generators, stats);
+
 
   if (lastSave > 0 && totalYieldPerSecond > 0) {
     const offline = calculateOfflineProgress(lastSave, Date.now(), totalYieldPerSecond);
-    if (offline.totalYield > 0) {
+    if (offline.totalYield > 0 || offline.clampedSeconds > 0) {
       store.dispatch(addMneme(offline.totalYield), 'offlineProgress');
-      offlineMessage = `Willkommen zurück! Während deiner Abwesenheit (${Math.floor(offline.clampedSeconds / 60)} Min.) hast du +${offline.totalYield.toLocaleString()} Mneme gesammelt!`;
+      offlineData = {
+        elapsedSeconds: offline.elapsedSeconds,
+        clampedSeconds: offline.clampedSeconds,
+        totalYield: offline.totalYield,
+        ratePerSec: totalYieldPerSecond,
+        wasClamped: offline.elapsedSeconds > offline.clampedSeconds,
+        lastSaveTimestamp: lastSave
+      };
     }
   }
 }
@@ -59,5 +65,6 @@ window.addEventListener('beforeunload', () => {
 // 4. Preact UI Rendern
 const rootElement = document.getElementById('app');
 if (rootElement) {
-  render(<App offlineMessage={offlineMessage} />, rootElement);
+  render(<App offlineData={offlineData} />, rootElement);
 }
+

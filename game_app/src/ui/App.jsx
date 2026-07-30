@@ -1,40 +1,39 @@
 import { useState, useEffect } from 'preact/hooks';
 import store from '../state/store';
 import { addMneme, buyGenerator, resetGame, updateSetting } from '../state/actions';
-import { calculateBulkCost, calculateMaxAffordable, calculateGeneratorYield, formatNumber } from '../engine/math';
+import {
+  calculateAggregatePlayerStats,
+  calculateTotalGeneratorYield,
+  formatNumber
+} from '../engine/math';
 import SaveManager from '../persistence/save-manager';
 import PauseMenu from './PauseMenu';
-import FloatingTextOverlay from './FloatingTextOverlay';
+import MainMenu from './MainMenu';
+import FloatingTextOverlay, { spawnFloatingText } from './FloatingTextOverlay';
 import AmbientParticles from './AmbientParticles';
+import CharacterView from './CharacterView';
+import SkillTreeView from './SkillTreeView';
+import OfflineModal from './OfflineModal';
+import GeneratorsView from './GeneratorsView';
 
-const GENERATOR_ICONS = {
-  gedankenArchiv: '📜',
-  seelenQuell: '💧',
-  chronoKristall: '🔮',
-  astralResonator: '🌌',
-  aetherBibliothek: '📚',
-  schattenWebstuhl: '🕸️',
-  kosmischesOrakel: '👁️',
-  traumAltar: '⛩️',
-  ewigkeitsSpire: '🏰',
-  vergessensRiss: '🕳️',
-  urzeitKatalysator: '🧪',
-  singularitaetsKern: '⚛️',
-  omniscenzMatrix: '🌐',
-  transzendenzNexus: '✨',
-  absolutesChronoskop: '⏳'
-};
-
-export function App({ offlineMessage }) {
+export function App({ offlineData }) {
   const [state, setState] = useState(store.getState());
+  const [screenState, setScreenState] = useState('main_menu'); // 'main_menu' | 'game'
+  const [hasSave, setHasSave] = useState(SaveManager.hasSave());
+  const [saveData, setSaveData] = useState(SaveManager.load());
+
+  const [activeTab, setActiveTab] = useState('generators'); // 'generators' | 'character' | 'skilltree'
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [toastMsg, setToastMsg] = useState(offlineMessage);
-  const [isFading, setIsFading] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(!!offlineData);
   const [buyMultiplier, setBuyMultiplier] = useState(1); // 1, 10, 100, 'max'
-  const [floats, setFloats] = useState([]);
   const [purchasedKey, setPurchasedKey] = useState(null);
 
   const settings = state.settings || { showFloatingText: true, showParticles: true, volume: 80, autosave: true };
+  const player = state.player || { level: 1, exp: 0, expToNext: 100, attributePoints: 0, skillPoints: 0 };
+  const stats = calculateAggregatePlayerStats(player);
+
+  const [autoSaveToast, setAutoSaveToast] = useState(true);
+  const [isAutoSaveFading, setIsAutoSaveFading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = store.subscribe((newState) => {
@@ -43,31 +42,33 @@ export function App({ offlineMessage }) {
     return unsubscribe;
   }, []);
 
-  // Offline-Willkommensnachricht nach 5s sanft ausblenden
+  // Sync save info whenever returning to main menu
+  const refreshSaveInfo = () => {
+    const exists = SaveManager.hasSave();
+    setHasSave(exists);
+    setSaveData(exists ? SaveManager.load() : null);
+  };
+
+  // 2s Toast für Automatische Speicherung bei Spielstart
   useEffect(() => {
-    if (offlineMessage) {
-      setToastMsg(offlineMessage);
-      setIsFading(false);
+    const fadeTimer = setTimeout(() => {
+      setIsAutoSaveFading(true);
+    }, 1500);
 
-      const fadeTimer = setTimeout(() => {
-        setIsFading(true);
-      }, 4500);
+    const removeTimer = setTimeout(() => {
+      setAutoSaveToast(false);
+    }, 2000);
 
-      const removeTimer = setTimeout(() => {
-        setToastMsg('');
-      }, 5000);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
-      return () => {
-        clearTimeout(fadeTimer);
-        clearTimeout(removeTimer);
-      };
-    }
-  }, [offlineMessage]);
-
-  // Keyboard Event Listener für ESC-Taste
+  // Keyboard Event Listener für ESC-Taste im Spiel
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && screenState === 'game') {
         e.preventDefault();
         setIsMenuOpen((prev) => !prev);
       }
@@ -75,35 +76,72 @@ export function App({ offlineMessage }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [screenState]);
 
-  const spawnFloat = (x, y, text, color = '#e2b042') => {
-    if (!settings.showFloatingText) return;
-    const newFloat = {
-      id: Date.now() + Math.random(),
-      x: x + (Math.random() * 20 - 10),
-      y: y + (Math.random() * 10 - 20),
-      text,
-      color,
-      createdAt: Date.now()
-    };
-    setFloats((prev) => [...prev, newFloat]);
+  const handleStartNewGame = () => {
+    SaveManager.clear();
+    store.dispatch(resetGame(), 'startNewGame');
+    SaveManager.save(store.getState());
+    refreshSaveInfo();
+    setShowOfflineModal(false);
+    setScreenState('game');
   };
 
-  const handleRemoveFloats = (expiredIds) => {
-    setFloats((prev) => prev.filter((f) => !expiredIds.includes(f.id)));
+  const handleContinueGame = () => {
+    if (offlineData && (offlineData.totalYield > 0 || offlineData.clampedSeconds > 0)) {
+      setShowOfflineModal(true);
+    }
+    setScreenState('game');
+  };
+
+  const handleDeleteSave = () => {
+    SaveManager.clear();
+    store.dispatch(resetGame(), 'deleteSave');
+    refreshSaveInfo();
+    setShowOfflineModal(false);
+    setScreenState('main_menu');
+  };
+
+  const handleReturnToMainMenu = () => {
+    SaveManager.save(store.getState());
+    refreshSaveInfo();
+    setIsMenuOpen(false);
+    setScreenState('main_menu');
   };
 
   const handleGatherClick = (e) => {
     store.dispatch(addMneme(1), 'gatherMneme');
-    spawnFloat(e.clientX, e.clientY, '+1 Mneme', '#e2b042');
+    if (settings.showFloatingText === false) return;
+
+    const lastResult = store.getState().lastClickResult;
+
+    let x = e && e.clientX ? e.clientX : window.innerWidth / 2;
+    let y = e && e.clientY ? e.clientY : window.innerHeight / 2;
+
+    if (e && e.currentTarget && (!e.clientX || e.clientX === 0)) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
+
+    if (lastResult) {
+      if (lastResult.isSuperCrit) {
+        spawnFloatingText(x, y, `⚡ GEDANKENBLITZ +${formatNumber(lastResult.yield)} Mneme!`, '#ff0055');
+      } else if (lastResult.isCrit) {
+        spawnFloatingText(x, y, `💥 KRIT! +${formatNumber(lastResult.yield)} Mneme`, '#ffb703');
+      } else {
+        spawnFloatingText(x, y, `+${formatNumber(lastResult.yield)} Mneme`, '#e2b042');
+      }
+    } else {
+      spawnFloatingText(x, y, '+1 Mneme', '#e2b042');
+    }
   };
 
   const handleBuyGenerator = (key, count, cost, e) => {
     store.dispatch(buyGenerator(key, count), `buyGenerator/${key}`);
-    
-    if (e && e.clientX) {
-      spawnFloat(e.clientX, e.clientY, `+${count === 'max' ? 'Max' : count} Stufe`, '#4cc9f0');
+
+    if (settings.showFloatingText !== false && e && e.clientX) {
+      spawnFloatingText(e.clientX, e.clientY, `+${count === 'max' ? 'Max' : count} Stufe`, '#4cc9f0');
     }
 
     setPurchasedKey(key);
@@ -114,25 +152,41 @@ export function App({ offlineMessage }) {
     store.dispatch(updateSetting(key, value), `updateSetting/${key}`);
   };
 
-  const handleReset = () => {
-    if (window.confirm('Möchtest du deinen Spielfortschritt wirklich zurücksetzen?')) {
-      SaveManager.clear();
-      store.dispatch(resetGame(), 'resetGame');
-    }
-  };
-
   // Gesamtertrag pro Sekunde berechnen
-  let totalYieldPerSecond = 0;
-  for (const key in state.generators) {
-    const gen = state.generators[key];
-    totalYieldPerSecond += calculateGeneratorYield(gen.baseYield, gen.level);
+  const totalYieldPerSecond = calculateTotalGeneratorYield(state.generators, stats);
+
+  const expProgressPct = Math.min(100, Math.floor((player.exp / (player.expToNext || 100)) * 100));
+
+  // SCREEN 1: MAIN MENU
+  if (screenState === 'main_menu') {
+    return (
+      <div className="game-container main-menu-screen">
+        {settings.showParticles && <AmbientParticles active={true} />}
+        <MainMenu
+          hasSave={hasSave}
+          saveData={saveData}
+          onStartNewGame={handleStartNewGame}
+          onContinueGame={handleContinueGame}
+          onDeleteSave={handleDeleteSave}
+          settings={settings}
+          onUpdateSettings={handleUpdateSettings}
+        />
+      </div>
+    );
   }
 
+  // SCREEN 2: ACTIVE GAME
   return (
-    <div className="game-container">
+    <div className="game-container fade-in-game">
       {settings.showParticles && <AmbientParticles active={true} />}
 
-      <FloatingTextOverlay floats={floats} onRemove={handleRemoveFloats} />
+      <FloatingTextOverlay active={settings.showFloatingText !== false} />
+
+      {autoSaveToast && (
+        <div className={`toast-top-corner ${isAutoSaveFading ? 'fade-out' : ''}`}>
+          💾 Automatische Speicherung aktiv
+        </div>
+      )}
 
       <header className="game-header">
         <div className="header-top-bar">
@@ -142,13 +196,15 @@ export function App({ offlineMessage }) {
         </div>
         <h1 className="game-title">Archiv des Vergessens</h1>
         <p className="game-subtitle">Die Macht der Mneme</p>
-      </header>
 
-      {toastMsg && (
-        <div className={`toast-notice ${isFading ? 'fade-out' : ''}`}>
-          ✨ {toastMsg}
+        {/* Header Hero Level Badge */}
+        <div className="header-hero-bar" onClick={() => setActiveTab('character')}>
+          <span className="hero-lvl-tag">Lvl {player.level || 1}</span>
+          <div className="mini-exp-track" title={`EXP: ${formatNumber(player.exp)} / ${formatNumber(player.expToNext)}`}>
+            <div className="mini-exp-fill" style={{ width: `${expProgressPct}%` }}></div>
+          </div>
         </div>
-      )}
+      </header>
 
       <section className="resource-banner">
         <div className="resource-item">
@@ -158,104 +214,64 @@ export function App({ offlineMessage }) {
         </div>
       </section>
 
-      <section className="click-section">
-        <button className="btn-gather" onClick={handleGatherClick}>
-          ✦ Mneme-Partikel Sammeln (+1)
+      {/* Main Tab Bar Navigation */}
+      <nav className="main-tab-nav">
+        <button
+          className={`tab-btn ${activeTab === 'generators' ? 'active' : ''}`}
+          onClick={() => setActiveTab('generators')}
+        >
+          🏛️ Generatoren
         </button>
-      </section>
+        <button
+          className={`tab-btn ${activeTab === 'character' ? 'active' : ''}`}
+          onClick={() => setActiveTab('character')}
+        >
+          👤 Charakter
+          {(player.attributePoints > 0) && (
+            <span className="tab-badge-notification">{player.attributePoints}</span>
+          )}
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'skilltree' ? 'active' : ''}`}
+          onClick={() => setActiveTab('skilltree')}
+        >
+          🌌 Talentbaum
+          {(player.skillPoints > 0) && (
+            <span className="tab-badge-notification">{player.skillPoints}</span>
+          )}
+        </button>
+      </nav>
 
-      {/* Bulk Buy Selector Header */}
-      <section className="bulk-buy-bar">
-        <span className="bulk-buy-label">Kaufmenge:</span>
-        <div className="bulk-buy-toggle">
-          {[1, 10, 100, 'max'].map((mult) => (
-            <button
-              key={mult}
-              className={`btn-bulk-option ${buyMultiplier === mult ? 'active' : ''}`}
-              onClick={() => setBuyMultiplier(mult)}
-            >
-              {mult === 'max' ? 'MAX' : `x${mult}`}
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* TAB 1: GENERATORS */}
+      {activeTab === 'generators' && (
+        <GeneratorsView
+          generators={state.generators}
+          mneme={state.resources.mneme}
+          buyMultiplier={buyMultiplier}
+          setBuyMultiplier={setBuyMultiplier}
+          purchasedKey={purchasedKey}
+          stats={stats}
+          onGatherClick={handleGatherClick}
+          onBuyGenerator={handleBuyGenerator}
+        />
+      )}
 
-      <section className="generators-grid">
-        {Object.entries(state.generators)
-          .filter((_, index, array) => {
-            if (index === 0) return true;
-            const prevGen = array[index - 1][1];
-            return prevGen.level >= 10;
-          })
-          .map(([key, gen]) => {
-            let cost = 0;
-            let targetCount = buyMultiplier;
+      {/* TAB 2: CHARACTER & ATTRIBUTES */}
+      {activeTab === 'character' && (
+        <CharacterView player={player} totalYieldPerSec={totalYieldPerSecond} />
+      )}
 
-            if (buyMultiplier === 'max') {
-              const maxInfo = calculateMaxAffordable(gen.baseCost, gen.level, gen.costMult, state.resources.mneme);
-              targetCount = maxInfo.count > 0 ? maxInfo.count : 1;
-              cost = maxInfo.cost > 0 ? maxInfo.cost : calculateBulkCost(gen.baseCost, gen.level, gen.costMult, 1);
-            } else {
-              cost = calculateBulkCost(gen.baseCost, gen.level, gen.costMult, buyMultiplier);
-            }
+      {/* TAB 3: POE STYLE SKILLTREE */}
+      {activeTab === 'skilltree' && (
+        <SkillTreeView player={player} mneme={state.resources.mneme} />
+      )}
 
-            const currentYield = calculateGeneratorYield(gen.baseYield, gen.level);
-            const canAfford = state.resources.mneme >= cost && cost > 0;
-            const icon = GENERATOR_ICONS[key] || '🔮';
-
-            // Fortschritt bis zur leistbaren Stufe (0-100%)
-            const affordabilityPercent = canAfford ? 100 : Math.min(100, (state.resources.mneme / (cost || 1)) * 100);
-
-            // Meilenstein-Fortschritt (alle 25 Level Verdopplung)
-            const milestoneProgress = ((gen.level % 25) / 25) * 100;
-            const nextMilestoneLvl = (Math.floor(gen.level / 25) + 1) * 25;
-
-            return (
-              <div
-                key={key}
-                className={`generator-card ${purchasedKey === key ? 'purchased-flash' : ''}`}
-              >
-                <div className="generator-header">
-                  <div className="generator-title-group">
-                    <span className="generator-icon">{icon}</span>
-                    <h3 className="generator-name">{gen.name}</h3>
-                  </div>
-                  <span className="generator-level">Stufe {gen.level}</span>
-                </div>
-
-                <div className="generator-stats">
-                  <p>Ertrag: +{formatNumber(currentYield)} Mneme/s</p>
-                  <p className="milestone-text">⚡ Next 2x Bonus bei Stufe {nextMilestoneLvl}</p>
-                </div>
-
-                {/* Meilenstein-Fortschrittsbalken */}
-                <div className="progress-bar-container milestone-bar-container" title={`Meilenstein-Fortschritt (${Math.floor(milestoneProgress)}%)`}>
-                  <div className="progress-bar milestone-bar" style={{ width: `${milestoneProgress}%` }}></div>
-                </div>
-
-                {/* Kaufbereitschafts-Fortschrittsbalken */}
-                <div className="progress-bar-container affordability-bar-container" title={`Bereitschaft (${Math.floor(affordabilityPercent)}%)`}>
-                  <div
-                    className={`progress-bar affordability-bar ${canAfford ? 'ready' : ''}`}
-                    style={{ width: `${affordabilityPercent}%` }}
-                  ></div>
-                </div>
-
-                <button
-                  className="btn-buy"
-                  disabled={!canAfford}
-                  onClick={(e) => handleBuyGenerator(key, targetCount, cost, e)}
-                >
-                  Kaufen ({buyMultiplier === 'max' ? `+${targetCount}` : `+${buyMultiplier}`}) für {formatNumber(cost)} Mneme
-                </button>
-              </div>
-            );
-          })}
-      </section>
-
-      <footer className="game-footer">
-        <span>Automatische Speicherung aktiv</span>
-      </footer>
+      {/* Offline Progress Modal */}
+      <OfflineModal
+        isOpen={showOfflineModal && screenState === 'game'}
+        offlineData={offlineData}
+        onClaim={() => setShowOfflineModal(false)}
+      />
 
       {/* Pausenmenü Modal */}
       <PauseMenu
@@ -263,7 +279,8 @@ export function App({ offlineMessage }) {
         onClose={() => setIsMenuOpen(false)}
         settings={settings}
         onUpdateSettings={handleUpdateSettings}
-        onResetProgress={handleReset}
+        onResetProgress={handleDeleteSave}
+        onReturnToMainMenu={handleReturnToMainMenu}
       />
     </div>
   );

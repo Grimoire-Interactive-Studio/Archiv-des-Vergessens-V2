@@ -7,7 +7,15 @@ export const INITIAL_STATE = {
     name: 'Mnemoniker',
     level: 1,
     exp: 0,
-    expToNext: 100
+    expToNext: 100,
+    attributePoints: 0,
+    skillPoints: 0,
+    attributes: {
+      focus: 0,
+      knowledge: 0,
+      willpower: 0
+    },
+    unlockedNodes: ['root']
   },
   resources: {
     mneme: 0,
@@ -186,6 +194,17 @@ export class Store {
     const merged = {
       ...INITIAL_STATE,
       ...savedState,
+      player: {
+        ...INITIAL_STATE.player,
+        ...(savedState.player || {}),
+        attributes: {
+          ...INITIAL_STATE.player.attributes,
+          ...((savedState.player && savedState.player.attributes) || {})
+        },
+        unlockedNodes: (savedState.player && Array.isArray(savedState.player.unlockedNodes))
+          ? savedState.player.unlockedNodes
+          : INITIAL_STATE.player.unlockedNodes
+      },
       resources: { ...INITIAL_STATE.resources, ...(savedState.resources || {}) },
       generators: { ...INITIAL_STATE.generators, ...(savedState.generators || {}) },
       system: { ...INITIAL_STATE.system, ...(savedState.system || {}) },

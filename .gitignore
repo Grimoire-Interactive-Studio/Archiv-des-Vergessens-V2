@@ -39,3 +39,7 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Independent Changelog
+CHANGELOG.md
+**/CHANGELOG.md

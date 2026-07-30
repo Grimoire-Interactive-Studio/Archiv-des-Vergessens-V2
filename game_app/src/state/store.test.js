@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Store, INITIAL_STATE } from './store.js';
-import { addMneme, buyGenerator, processTick, updateSetting, resetGame } from './actions.js';
+import { addMneme, buyGenerator, processTick, updateSetting, resetGame, allocateAttributePoint, unlockSkillNode, respecSkillTree } from './actions.js';
 
 test('Central Store - Initial State Structure & Immutability', () => {
   const store = new Store();
@@ -126,3 +126,39 @@ test('Central Store - Reset Game', () => {
   assert.equal(store.getState().resources.mneme, INITIAL_STATE.resources.mneme);
   assert.equal(store.getState().generators.gedankenArchiv.level, INITIAL_STATE.generators.gedankenArchiv.level);
 });
+
+test('RPG Features - EXP, Level Up, Attributes & Skill Tree', () => {
+  const store = new Store();
+
+  // 1. Initial State
+  assert.equal(store.getState().player.level, 1);
+  assert.equal(store.getState().player.attributePoints, 0);
+
+  // 2. Perform clicks to accumulate EXP and level up
+  for (let i = 0; i < 100; i++) {
+    store.dispatch(addMneme(10));
+  }
+
+  const p = store.getState().player;
+  assert.ok(p.level > 1, 'Player should have leveled up');
+  assert.ok(p.attributePoints > 0, 'Player should have gained attribute points');
+  assert.ok(p.skillPoints > 0, 'Player should have gained skill points');
+
+  // 3. Allocate Attribute Point
+  const pointsBefore = p.attributePoints;
+  store.dispatch(allocateAttributePoint('focus'));
+  assert.equal(store.getState().player.attributePoints, pointsBefore - 1);
+  assert.equal(store.getState().player.attributes.focus, 1);
+
+  // 4. Unlock Skill Tree Node (arch_1 connected to root)
+  const skillPointsBefore = store.getState().player.skillPoints;
+  store.dispatch(unlockSkillNode('arch_1'));
+  assert.equal(store.getState().player.skillPoints, skillPointsBefore - 1);
+  assert.ok(store.getState().player.unlockedNodes.includes('arch_1'));
+
+  // 5. Respec Skill Tree
+  store.dispatch(respecSkillTree());
+  assert.equal(store.getState().player.skillPoints, skillPointsBefore);
+  assert.deepEqual(store.getState().player.unlockedNodes, ['root']);
+});
+
