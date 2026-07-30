@@ -15,6 +15,10 @@ import CharacterView from './CharacterView';
 import SkillTreeView from './SkillTreeView';
 import OfflineModal from './OfflineModal';
 import GeneratorsView from './GeneratorsView';
+import ResourceBanner from '../components/ResourceBanner';
+import HubSidebar from '../components/HubSidebar';
+import InventoryView from '../components/InventoryView';
+import StoryView from '../components/StoryView';
 
 export function App({ offlineData }) {
   const [state, setState] = useState(store.getState());
@@ -206,80 +210,18 @@ export function App({ offlineData }) {
         </div>
       </header>
 
-      <section className="resource-banner">
-        <div className="resource-item">
-          <span className="resource-label">Gesammelte Mneme</span>
-          <span className="resource-value">{formatNumber(state.resources.mneme)}</span>
-          <span className="resource-rate">+{formatNumber(totalYieldPerSecond)} / Sekunde</span>
-        </div>
-      </section>
+      <ResourceBanner mneme={state.resources.mneme} totalYieldPerSecond={totalYieldPerSecond} />
 
       {/* Main Game Hub Layout with Left Navigation Sidebar */}
       <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', alignItems: 'flex-start' }}>
         {/* Left Hub Sidebar Panel */}
-        <aside className="hub-sidebar-panel arcane-panel arcane-panel-ornate">
-          <div className="hub-nav-list">
-            <button
-              className={`hub-nav-btn ${activeTab === 'generators' ? 'active' : ''}`}
-              onClick={() => setActiveTab('generators')}
-            >
-              <span className="hub-nav-icon">🏛️</span>
-              Generatoren
-            </button>
-
-            <button
-              className={`hub-nav-btn ${activeTab === 'character' ? 'active' : ''}`}
-              onClick={() => setActiveTab('character')}
-            >
-              <span className="hub-nav-icon">👤</span>
-              Charakter
-              {player.attributePoints > 0 && (
-                <span className="tab-badge-notification" style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
-                  {player.attributePoints}
-                </span>
-              )}
-            </button>
-
-            <button
-              className={`hub-nav-btn ${activeTab === 'skilltree' ? 'active' : ''}`}
-              onClick={() => setActiveTab('skilltree')}
-            >
-              <span className="hub-nav-icon">🌌</span>
-              Talentbaum
-              {player.skillPoints > 0 && (
-                <span className="tab-badge-notification" style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}>
-                  {player.skillPoints}
-                </span>
-              )}
-            </button>
-
-            <button
-              className={`hub-nav-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-              onClick={() => setActiveTab('inventory')}
-            >
-              <span className="hub-nav-icon">🎒</span>
-              Inventar
-            </button>
-
-            <button
-              className={`hub-nav-btn ${activeTab === 'story' ? 'active' : ''}`}
-              onClick={() => setActiveTab('story')}
-            >
-              <span className="hub-nav-icon">📖</span>
-              Story
-            </button>
-
-            <div className="hub-nav-separator"></div>
-
-            <button
-              className="hub-nav-btn"
-              onClick={() => setIsMenuOpen(true)}
-            >
-              <span className="hub-nav-icon">⚙️</span>
-              Optionen
-            </button>
-          </div>
-        </aside>
+        <HubSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          playerAttributePoints={player.attributePoints}
+          playerSkillPoints={player.skillPoints}
+          onOpenMenu={() => setIsMenuOpen(true)}
+        />
 
         {/* Main Scene Content Area (Daneben) */}
         <main style={{ flex: '1', minWidth: 0 }}>
@@ -308,88 +250,10 @@ export function App({ offlineData }) {
           )}
 
           {/* TAB 4: INVENTORY WITH STAT PREVIEW */}
-          {activeTab === 'inventory' && (
-            <div className="arcane-panel arcane-panel-ornate">
-              <h2 style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold-bright)', marginBottom: '1rem' }}>
-                🎒 Inventar & Ausrüstung
-              </h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                Bewege die Maus über ein Item, um die Statveränderung einzusehen.
-              </p>
-
-              <div className="inventory-grid">
-                {/* Sample Items with Stat Preview Tooltips */}
-                <div className="inventory-slot">
-                  <span style={{ fontSize: '1.8rem' }}>🗡️</span>
-                  <div className="item-tooltip">
-                    <div className="item-tooltip-title">Klinge der Erinnerung</div>
-                    <div className="stat-change-list">
-                      <div className="stat-change-row">
-                        <span>Stärke (STR):</span>
-                        <span className="stat-change-val positive">+5</span>
-                      </div>
-                      <div className="stat-change-row">
-                        <span>Krit-Chance:</span>
-                        <span className="stat-change-val positive">+2.0%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="inventory-slot">
-                  <span style={{ fontSize: '1.8rem' }}>🔮</span>
-                  <div className="item-tooltip">
-                    <div className="item-tooltip-title">Fokus-Kristall</div>
-                    <div className="stat-change-list">
-                      <div className="stat-change-row">
-                        <span>Arkan (ARC):</span>
-                        <span className="stat-change-val positive">+8</span>
-                      </div>
-                      <div className="stat-change-row">
-                        <span>Baukosten:</span>
-                        <span className="stat-change-val negative">+1.5%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="inventory-slot">
-                  <span style={{ fontSize: '1.8rem' }}>🛡️</span>
-                  <div className="item-tooltip">
-                    <div className="item-tooltip-title">Schild der Ahnen</div>
-                    <div className="stat-change-list">
-                      <div className="stat-change-row">
-                        <span>Konstitution:</span>
-                        <span className="stat-change-val positive">+12</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Empty slots */}
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <div key={i} className="inventory-slot" style={{ opacity: 0.3 }}>
-                    <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>◇</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'inventory' && <InventoryView />}
 
           {/* TAB 5: STORY / KAMPF */}
-          {activeTab === 'story' && (
-            <div className="arcane-panel arcane-panel-ornate" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: '1rem', filter: 'drop-shadow(0 0 15px var(--accent-gold-glow))' }}>📖</div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', color: 'var(--accent-gold-bright)', fontSize: '1.8rem', marginBottom: '0.5rem' }}>
-                STORY & KÄMPFE
-              </h2>
-              <p style={{ color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto 1.5rem auto', lineHeight: '1.5' }}>
-                Hier werden später die epischen Storyfights und die Enthüllung der verblassenden Erinnerungen stattfinden.
-              </p>
-              <div className="arcane-divider" style={{ maxWidth: '300px', margin: '0 auto 1.5rem auto' }}></div>
-              <span className="points-badge highlight">Kapitel 1: Demnächst verfügbar</span>
-            </div>
-          )}
+          {activeTab === 'story' && <StoryView />}
         </main>
       </div>
 
